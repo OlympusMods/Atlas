@@ -1,0 +1,36 @@
+modLoader="javafml"
+loaderVersion="[61,)"
+license="GPL-3.0-only"
+
+[[mods]]
+modId="atlas"
+version="${mod_version}"
+displayName="Atlas"
+authors="Akis"
+logoFile="icon.png"
+
+description='''Client-side minimap, world map and waypoints with a 2D and a 3D view of everything you have explored.'''
+
+[[dependencies.atlas]]
+    modId="forge"
+    mandatory=true
+    versionRange="[61,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.atlas]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.21.11,1.21.12)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.atlas]]
+    modId="proteus"
+    mandatory=true
+    versionRange="[1.1.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[mixins]]
+config = "atlas.mixins.json"

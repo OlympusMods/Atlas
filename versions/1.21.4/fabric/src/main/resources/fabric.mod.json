@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "atlas",
+	"version": "${version}",
+	"name": "Atlas",
+	"description": "Client-side minimap, world map and waypoints with a 2D and a 3D view of everything you have explored.",
+	"authors": [
+		"Akis"
+	],
+	"contact": {
+		"homepage": "https://github.com/OlympusMods/Atlas",
+		"sources": "https://github.com/OlympusMods/Atlas"
+	},
+	"license": "GPL-3.0-only",
+	"icon": "icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.github.olympus.atlas.AtlasFabric"
+		]
+	},
+	"mixins": [
+		"atlas.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": ">=1.21.4 <1.21.6-",
+		"java": ">=21",
+		"fabric-api": "*",
+		"proteus": ">=1.1.0"
+	}
+}
