@@ -11,9 +11,12 @@ import com.github.olympus.atlas.core.map.Region;
 import com.github.olympus.atlas.core.map.Style;
 import com.github.olympus.atlas.core.map.Tile;
 import com.github.olympus.atlas.core.map.TileSource;
+import com.github.olympus.atlas.core.render.BeamShape;
 import com.github.olympus.atlas.core.render.Camera;
 import com.github.olympus.atlas.core.render.MapPainter;
 import com.github.olympus.atlas.core.render.TerrainRenderer;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class RenderTest {
@@ -100,5 +103,34 @@ class RenderTest {
         assertTrue(camera.project(-2.0, 71.0, 10.0, 1920.0, 1080.0, out));
         assertTrue(out[0] > 960.0);
         assertTrue(out[1] < 540.0);
+    }
+
+    @Test
+    void beamsAreFourSidedColumns() {
+        List<float[]> core = new ArrayList<>();
+        BeamShape.core((x, y, z, u, v) -> core.add(new float[] {x, y, z, u, v}), 7.5f);
+        assertEquals(16, core.size());
+        for (float[] vertex : core) {
+            assertEquals(BeamShape.CORE, Math.hypot(vertex[0], vertex[2]), 1.0e-4);
+            assertTrue(vertex[1] == 0f || vertex[1] == BeamShape.HEIGHT);
+        }
+        List<float[]> glow = new ArrayList<>();
+        BeamShape.glow((x, y, z, u, v) -> glow.add(new float[] {x, y, z, u, v}), 7.5f);
+        assertEquals(16, glow.size());
+        for (float[] vertex : glow) {
+            assertEquals(BeamShape.GLOW, Math.abs(vertex[0]), 1.0e-6);
+            assertEquals(BeamShape.GLOW, Math.abs(vertex[2]), 1.0e-6);
+        }
+        assertEquals(BeamShape.scroll(0f), BeamShape.scroll(BeamShape.PERIOD), 1.0e-4);
+    }
+
+    @Test
+    void beamsFadeWhenNearAndAtTheDistanceLimit() {
+        assertEquals(1f, BeamShape.fade(200.0, 200.0, 0), 1.0e-6);
+        assertEquals(0.12f, BeamShape.fade(0.5, 3.0, 0), 1.0e-6);
+        assertTrue(BeamShape.fade(7.0, 7.0, 0) < 1f);
+        assertTrue(BeamShape.fade(7.0, 7.0, 0) > 0.12f);
+        assertEquals(0f, BeamShape.fade(600.0, 600.0, 500), 1.0e-6);
+        assertEquals(0.5f, BeamShape.fade(450.0, 450.0, 500), 1.0e-4);
     }
 }

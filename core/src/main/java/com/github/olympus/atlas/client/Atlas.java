@@ -40,6 +40,7 @@ public final class Atlas {
     private static final Map<Long, Integer> SCANNED = new HashMap<>();
     private static final Map<Long, Integer> SCANNED_CAVE = new HashMap<>();
     private static final Map<String, Boolean> OCCLUDED = new HashMap<>();
+    private static final double NEAR = 64.0;
 
     private static AtlasConfig config;
     private static ExecutorService work;
@@ -199,6 +200,34 @@ public final class Atlas {
 
     public static boolean occluded(Waypoint waypoint) {
         return Boolean.TRUE.equals(OCCLUDED.get(waypoint.id));
+    }
+
+    private static boolean hidden(ClientLevel level, LocalPlayer player, MapStore surface, double x, double y,
+            double z, double tx, double ty, double tz) {
+        double dx = tx - x;
+        double dy = ty - y;
+        double dz = tz - z;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (length < 0.5) {
+            return false;
+        }
+        double close = Math.min(1.0, NEAR / length);
+        if (World.blocked(level, player, x, y, z, x + dx * close, y + dy * close, z + dz * close)) {
+            return true;
+        }
+        if (surface == null || length <= NEAR) {
+            return false;
+        }
+        double flat = Math.sqrt(dx * dx + dz * dz);
+        int steps = (int) Math.min(400.0, (flat * (1.0 - close)) / 1.5);
+        for (int step = 1; step < steps; step++) {
+            double t = close + (1.0 - close) * step / steps;
+            int top = surface.height((int) Math.floor(x + dx * t), (int) Math.floor(z + dz * t));
+            if (top != Region.NONE && top + 1 > y + dy * t) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void chat(String message) {
