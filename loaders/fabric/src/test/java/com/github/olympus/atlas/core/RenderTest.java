@@ -80,6 +80,16 @@ class RenderTest {
     }
 
     @Test
+    void appliesTheViewSway() {
+        Camera camera = new Camera(0.0, 70.0, 0.0, 0.0, 0.0, 70.0, 1.0);
+        camera.post = new double[] {1, 0, 0, 0.5, 0, 1, 0, 0, 0, 0, 1, 0};
+        double[] out = new double[3];
+        assertTrue(camera.project(0.0, 70.0, 10.0, 100.0, 100.0, out));
+        assertTrue(out[0] > 50.0);
+        assertEquals(50.0, out[1], 0.001);
+    }
+
+    @Test
     void projectsWhatIsAheadToTheCenter() {
         Camera camera = new Camera(0.0, 70.0, 0.0, 0.0, 0.0, 70.0, 16.0 / 9.0);
         double[] out = new double[3];

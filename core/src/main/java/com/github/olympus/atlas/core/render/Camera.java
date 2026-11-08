@@ -14,6 +14,7 @@ public final class Camera {
     public final double uz;
     public final double tanHalf;
     public final double aspect;
+    public double[] post;
 
     public Camera(double x, double y, double z, double yawDegrees, double pitchDegrees, double fovDegrees,
             double aspect) {
@@ -45,15 +46,37 @@ public final class Camera {
         double vx = px - x;
         double vy = py - y;
         double vz = pz - z;
-        double depth = vx * fx + vy * fy + vz * fz;
+        view(px, py, pz, out);
+        return screen(out[0], out[1], out[2], width, height, out);
+    }
+
+    public void view(double px, double py, double pz, double[] out) {
+        double vx = px - x;
+        double vy = py - y;
+        double vz = pz - z;
+        double cx = vx * rx + vz * rz;
+        double cy = vx * ux + vy * uy + vz * uz;
+        double cz = -(vx * fx + vy * fy + vz * fz);
+        double[] m = post;
+        if (m != null) {
+            double tx = m[0] * cx + m[1] * cy + m[2] * cz + m[3];
+            double ty = m[4] * cx + m[5] * cy + m[6] * cz + m[7];
+            cz = m[8] * cx + m[9] * cy + m[10] * cz + m[11];
+            cx = tx;
+            cy = ty;
+        }
+        out[0] = cx;
+        out[1] = cy;
+        out[2] = -cz;
+    }
+
+    public boolean screen(double cx, double cy, double depth, double width, double height, double[] out) {
         out[2] = depth;
         if (depth <= 0.05) {
             return false;
         }
-        double sx = (vx * rx + vz * rz) / (depth * tanHalf * aspect);
-        double sy = (vx * ux + vy * uy + vz * uz) / (depth * tanHalf);
-        out[0] = (0.5 + sx * 0.5) * width;
-        out[1] = (0.5 - sy * 0.5) * height;
+        out[0] = (0.5 + cx / (depth * tanHalf * aspect) * 0.5) * width;
+        out[1] = (0.5 - cy / (depth * tanHalf) * 0.5) * height;
         return true;
     }
 }

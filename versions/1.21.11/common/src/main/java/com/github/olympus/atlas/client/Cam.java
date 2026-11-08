@@ -11,6 +11,9 @@ public final class Cam {
         return Minecraft.getInstance().gameRenderer.getMainCamera();
     }
 
+    public static void prepare() {
+    }
+
     public static boolean ready() {
         return camera().isInitialized();
     }

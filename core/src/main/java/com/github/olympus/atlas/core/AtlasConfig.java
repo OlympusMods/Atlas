@@ -47,6 +47,8 @@ public final class AtlasConfig {
         HIDE
     }
 
+    public int version = 2;
+
     public boolean minimapEnabled = true;
     public Shape minimapShape = Shape.ROUND;
     public boolean minimapRotate = true;
@@ -88,8 +90,8 @@ public final class AtlasConfig {
     public int terrainFov = 55;
 
     public boolean waypointsInWorld = true;
-    public boolean waypointNames = true;
-    public boolean waypointDistance = true;
+    public boolean waypointNames = false;
+    public boolean waypointDistance = false;
     public boolean waypointBeams = true;
     public int waypointMaxDistance = 0;
     public int waypointScale = 100;
@@ -170,6 +172,11 @@ public final class AtlasConfig {
             try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
                 AtlasConfig read = GSON.fromJson(reader, AtlasConfig.class);
                 if (read != null) {
+                    if (!text(file).contains("\"version\"")) {
+                        read.waypointNames = false;
+                        read.waypointDistance = false;
+                    }
+                    read.version = 2;
                     return read.sanitize();
                 }
             } catch (IOException | RuntimeException exception) {
@@ -177,6 +184,10 @@ public final class AtlasConfig {
             }
         }
         return new AtlasConfig();
+    }
+
+    private static String text(Path file) throws IOException {
+        return Files.readString(file, StandardCharsets.UTF_8);
     }
 
     public void save(Path file) {
