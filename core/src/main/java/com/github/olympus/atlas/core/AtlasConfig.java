@@ -71,6 +71,7 @@ public final class AtlasConfig {
     public boolean radarPassive = false;
     public boolean radarHideSneaking = true;
     public boolean radarHideInvisible = true;
+    public boolean radarIdentify = true;
 
     public ColorMode colorMode = ColorMode.TEXTURE;
     public boolean heightShading = true;

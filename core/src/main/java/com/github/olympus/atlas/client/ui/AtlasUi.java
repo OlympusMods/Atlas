@@ -159,6 +159,8 @@ public final class AtlasUi extends UiShell {
         y += LINE;
         config.radarHideInvisible = toggle("radarHideInvisible", y, config.radarHideInvisible);
         y += LINE;
+        config.radarIdentify = toggle("radarIdentify", y, config.radarIdentify);
+        y += LINE;
         return y;
     }
 

@@ -95,10 +95,10 @@
   "atlas.option.terrainFog.tooltip": "Fade far terrain into the sky",
   "atlas.option.waypointsInWorld": "Show in world",
   "atlas.option.waypointsInWorld.tooltip": "Draw waypoints over the world",
-  "atlas.option.waypointNames": "Names",
-  "atlas.option.waypointNames.tooltip": "Show waypoint names. When off, the name shows only while you look at one",
-  "atlas.option.waypointDistance": "Distance",
-  "atlas.option.waypointDistance.tooltip": "Show how far away each waypoint is",
+  "atlas.option.waypointNames": "Always show names",
+  "atlas.option.waypointNames.tooltip": "Show every waypoint's name. When off, the name shows while you look at a waypoint",
+  "atlas.option.waypointDistance": "Always show distance",
+  "atlas.option.waypointDistance.tooltip": "Show every waypoint's distance. When off, it shows while you look at a waypoint",
   "atlas.option.waypointBeams": "Beams",
   "atlas.option.waypointBeams.tooltip": "Draw a light beam at each waypoint",
   "atlas.option.waypointMaxDistance": "Fade distance",
@@ -222,5 +222,7 @@
   "key.atlas.view": "Switch 2D and 3D",
   "key.atlas.cave": "Cycle cave mode",
   "key.atlas.waypoints": "Toggle waypoints in world",
-  "key.atlas.menu": "Open settings"
+  "key.atlas.menu": "Open settings",
+  "atlas.option.radarIdentify": "Identify with the player list key",
+  "atlas.option.radarIdentify.tooltip": "While the player list key (Tab) is held, the radar shows every entity and dropped item with its name"
 }

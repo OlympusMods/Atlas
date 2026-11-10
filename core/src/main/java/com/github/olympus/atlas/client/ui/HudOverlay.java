@@ -32,12 +32,16 @@ import net.minecraft.core.BlockPos;
 
 public final class HudOverlay implements Overlay {
     private static final int BACKGROUND = 0xD0101318;
-    private static final int[] BLIP_COLORS = {0xFFFFFF, 0xFF5A52, 0x7CD66B};
+    private static final int[] BLIP_COLORS = {0xFFFFFF, 0xFF5A52, 0x7CD66B, 0x6FD3FF, 0xC9B8FF};
 
     private record Params(MapStore store, MapPainter.View view, TerrainRenderer.Scene scene, List<Marker> markers,
             boolean round, int opacity) {
     }
 
+    private record Tag(float x, float y, String name, int color) {
+    }
+
+    private final List<Tag> tags = new ArrayList<>();
     private final MapTexture texture = new MapTexture("minimap");
     private AsyncFrame<Params> frames;
     private long shownSerial = -1;
@@ -108,6 +112,8 @@ public final class HudOverlay implements Overlay {
         double half = pixels / 2.0;
         double reach = half - Math.max(4.0, pixels / 28.0);
         List<Marker> markers = new ArrayList<>();
+        boolean identify = Atlas.identifying();
+        tags.clear();
         TerrainRenderer.Scene scene = null;
         Camera camera = null;
         if (config.minimapTilt) {
@@ -135,7 +141,12 @@ public final class HudOverlay implements Overlay {
             if (place(camera, ex - px, World.y(blip.entity(), partial), ez - pz, px, pz, cos, sin, scale, half,
                     reach, round, false)) {
                 markers.add(new Marker((float) point[0], (float) point[1], BLIP_COLORS[blip.kind()],
-                        blip.kind() == World.PLAYER ? Marker.SQUARE : Marker.DOT, dot, 0f));
+                        blip.kind() == World.PLAYER ? Marker.SQUARE : Marker.DOT,
+                        blip.kind() >= World.ITEM ? dot * 0.75f : dot, 0f));
+                if (identify && tags.size() < 48) {
+                    tags.add(new Tag((float) (point[0] / guiScale), (float) (point[1] / guiScale),
+                            World.name(blip.entity()), BLIP_COLORS[blip.kind()]));
+                }
             }
         }
         float heading = config.minimapRotate ? 0f : (float) Math.toRadians(yaw + 180.0);
@@ -168,11 +179,41 @@ public final class HudOverlay implements Overlay {
         if (config.minimapCompass && !config.minimapTilt) {
             compass(canvas, left + size / 2f, top + size / 2f, size / 2f - 7f, cos, sin, round);
         }
+        if (!tags.isEmpty()) {
+            tags(canvas, left, top, (float) Math.max(0.5, Math.min(1.0, 1.5 / guiScale)));
+        }
         int y = top + size + 3;
         for (String line : lines) {
             int width = canvas.textWidth(line);
             canvas.text(line, left + (size - width) / 2, y, 0xFFFFFFFF, true);
             y += canvas.lineHeight() + 1;
+        }
+    }
+
+    private void tags(Canvas canvas, int left, int top, float scale) {
+        List<float[]> taken = new ArrayList<>();
+        int line = canvas.lineHeight();
+        for (Tag tag : tags) {
+            float w = canvas.textWidth(tag.name()) * scale;
+            float x = left + tag.x() - w / 2f;
+            float y = top + tag.y() - (line + 3) * scale;
+            boolean free = true;
+            for (float[] box : taken) {
+                if (x < box[0] + box[2] && x + w > box[0] && y < box[1] + line * scale && y + line * scale > box[1]) {
+                    free = false;
+                    break;
+                }
+            }
+            if (!free) {
+                continue;
+            }
+            taken.add(new float[] {x, y, w});
+            canvas.push();
+            canvas.translate(x, y);
+            canvas.scale(scale, scale);
+            canvas.fill(-1, -1, canvas.textWidth(tag.name()) + 2, line + 1, 0xA010131A);
+            canvas.text(tag.name(), 0, 0, 0xFF000000 | tag.color(), false);
+            canvas.pop();
         }
     }
 

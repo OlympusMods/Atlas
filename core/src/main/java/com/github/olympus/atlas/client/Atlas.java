@@ -62,6 +62,7 @@ public final class Atlas {
     private static boolean ceiling;
     private static boolean colorsLoaded;
     private static boolean showWaypoints = true;
+    private static boolean identifying;
 
     private Atlas() {
     }
@@ -155,6 +156,10 @@ public final class Atlas {
 
     public static List<World.Blip> blips() {
         return BLIPS;
+    }
+
+    public static boolean identifying() {
+        return identifying;
     }
 
     public static boolean showWaypoints() {
@@ -282,9 +287,10 @@ public final class Atlas {
         AtlasConfig settings = config();
         boolean radar = radarAllowed() && settings.minimapEnabled;
         double range = settings.minimapSize / settings.minimapScale();
+        identifying = radar && settings.radarIdentify && World.identifying(minecraft);
         World.blips(minecraft, radar && settings.radarPlayers, radar && settings.radarHostile,
-                radar && settings.radarPassive, settings.radarHideSneaking, settings.radarHideInvisible, range,
-                BLIPS);
+                radar && settings.radarPassive, settings.radarHideSneaking, settings.radarHideInvisible,
+                identifying, range, BLIPS);
         if (ticks % 20 == 0) {
             housekeeping(player);
         }

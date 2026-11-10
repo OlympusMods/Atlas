@@ -6,7 +6,7 @@ Press **M** for the map, **B** to add a waypoint where you stand, **V** to switc
 
 ## What it does
 
-- Minimap: round or square, rotating or north up, six zoom levels, any corner, size and opacity, coordinates, biome, light level, compass letters, waypoints, and a radar with separate switches for players, hostile and passive mobs. It can be tilted into a 3D view.
+- Minimap: round or square, rotating or north up, six zoom levels, any corner, size and opacity, coordinates, biome, light level, compass letters, waypoints, and a radar with separate switches for players, hostile and passive mobs. Hold the player list key (Tab) and the radar names every entity and dropped item. It can be tilted into a 3D view.
 - Fullscreen map: drag to pan, scroll to zoom, dimension switch, cave layer slider, chunk grid, waypoint list with search, double click to add a waypoint, right click to edit, hide, delete or teleport.
 - 3D map: the same terrain with an orbit camera, including what is under tree canopies, roofs and other overhangs. Drag to orbit, right drag to move, scroll to zoom. Switching between 2D and 3D keeps the position and dimension.
 - Cave mode: slices the map at a height. Auto turns it on underground and in dimensions with a ceiling.

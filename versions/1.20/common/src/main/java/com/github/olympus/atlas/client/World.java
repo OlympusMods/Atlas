@@ -19,6 +19,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.EmptyBlockGetter;
@@ -37,6 +38,11 @@ public final class World {
     public static final int PLAYER = 0;
     public static final int HOSTILE = 1;
     public static final int PASSIVE = 2;
+    public static final int ITEM = 3;
+    public static final int OTHER = 4;
+
+    private static final int MAX_RUN = 24;
+    private static final int MAX_GAP = 64;
 
     private static final int COLORED = 1 << 16;
     private static final int WATER = 1 << 17;
@@ -191,11 +197,45 @@ public final class World {
                     }
                     data.depth[i] = (byte) Math.min(255, y - floor);
                     data.under[i] = floor >= minY ? (short) under : 0;
+                } else if (surface) {
+                    overhang(data, i, sections, x, y, z, minY, shared);
                 }
                 data.biome[i] = (short) biome(chunk, (cx << 4) + x, y, (cz << 4) + z, shared);
             }
         }
         return data;
+    }
+
+    private static void overhang(ChunkData data, int i, LevelChunkSection[] sections, int x, int top, int z,
+            int minY, MapStore.Shared shared) {
+        int run = 1;
+        int y = top - 1;
+        while (run < MAX_RUN && y >= minY && !state(sections, x, y, z, minY).isAir()) {
+            run++;
+            y--;
+        }
+        if (run >= MAX_RUN || y < minY) {
+            return;
+        }
+        int open = 0;
+        int packed = 0;
+        while (open < MAX_GAP && y >= minY) {
+            BlockState state = state(sections, x, y, z, minY);
+            if (!state.isAir()) {
+                packed = info(state, shared);
+                if ((packed & COLORED) != 0) {
+                    break;
+                }
+            }
+            open++;
+            y--;
+        }
+        if (open == 0 || open >= MAX_GAP || y < minY) {
+            return;
+        }
+        data.thick[i] = (byte) run;
+        data.gap[i] = (byte) open;
+        data.ground[i] = (short) packed;
     }
 
     private static BlockState state(LevelChunkSection[] sections, int x, int y, int z, int minY) {
@@ -240,16 +280,19 @@ public final class World {
     }
 
     public static void blips(Minecraft minecraft, boolean players, boolean hostile, boolean passive,
-            boolean hideSneaking, boolean hideInvisible, double range, List<Blip> out) {
+            boolean hideSneaking, boolean hideInvisible, boolean everything, double range, List<Blip> out) {
         out.clear();
         LocalPlayer self = minecraft.player;
-        if (self == null || minecraft.level == null || !(players || hostile || passive)) {
+        if (self == null || minecraft.level == null || !(players || hostile || passive || everything)) {
             return;
         }
         double limit = range * range;
         for (Entity entity : minecraft.level.entitiesForRendering()) {
-            if (entity == self || !(entity instanceof LivingEntity) || entity instanceof ArmorStand
-                    || !entity.isAlive()) {
+            if (entity == self || !entity.isAlive()) {
+                continue;
+            }
+            boolean living = entity instanceof LivingEntity && !(entity instanceof ArmorStand);
+            if (!living && !everything) {
                 continue;
             }
             double dx = entity.getX() - self.getX();
@@ -260,15 +303,17 @@ public final class World {
             if (hideInvisible && entity.isInvisible()) {
                 continue;
             }
-            if (entity instanceof Player) {
-                if (players && !(hideSneaking && entity.isShiftKeyDown())) {
+            if (!living) {
+                out.add(new Blip(entity, entity instanceof ItemEntity ? ITEM : OTHER));
+            } else if (entity instanceof Player) {
+                if ((players || everything) && !(hideSneaking && entity.isShiftKeyDown())) {
                     out.add(new Blip(entity, PLAYER));
                 }
             } else if (entity instanceof Enemy) {
-                if (hostile) {
+                if (hostile || everything) {
                     out.add(new Blip(entity, HOSTILE));
                 }
-            } else if (passive) {
+            } else if (passive || everything) {
                 out.add(new Blip(entity, PASSIVE));
             }
         }
@@ -300,6 +345,10 @@ public final class World {
 
     public static void command(LocalPlayer player, String command) {
         player.connection.sendCommand(command);
+    }
+
+    public static boolean identifying(Minecraft minecraft) {
+        return minecraft.options.keyPlayerList.isDown();
     }
 
     public static boolean dead(LocalPlayer player) {

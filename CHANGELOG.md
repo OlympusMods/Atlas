@@ -3,7 +3,7 @@
 ## 1.0.0
 
 - Minimap on the HUD: round or square, rotating or north up, six zoom levels, any corner, size, opacity, coordinates, biome, light level and compass letters
-- Radar with separate switches for players, hostile mobs and passive mobs
+- Radar with separate switches for players, hostile mobs and passive mobs, and names for every entity and dropped item while the player list key is held
 - Fullscreen map with drag and scroll, dimension switching, a cave layer slider, a chunk grid and a searchable waypoint list
 - 3D terrain view of the explored map with tree canopies and overhangs, orbit, pan and zoom, one key to switch between 2D and 3D, and an optional tilted 3D minimap
 - Map colors from averaged block textures or vanilla map colors, with height shading, water depth and biome tint
