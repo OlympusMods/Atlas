@@ -288,6 +288,11 @@ public final class MapApp extends UiShell implements RawInput {
     private void toggleTerrain() {
         terrain = !terrain;
         targetScale = scale;
+        MapStore store = store();
+        int top = store == null ? Region.NONE : store.height((int) Math.floor(centerX), (int) Math.floor(centerZ));
+        if (terrain && top != Region.NONE) {
+            ground = top;
+        }
         lastState = new double[0];
     }
 
@@ -402,10 +407,6 @@ public final class MapApp extends UiShell implements RawInput {
         }
         MapStore store = store();
         if (store != null) {
-            int top = store.height((int) Math.floor(centerX), (int) Math.floor(centerZ));
-            if (top != Region.NONE) {
-                ground += (top - ground) * 0.15;
-            }
             request(store, config, width, height);
         }
         AsyncFrame.Frame<Params> frame = frames.take();
