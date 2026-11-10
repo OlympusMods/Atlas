@@ -22,6 +22,7 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
@@ -33,6 +34,8 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 public final class World {
     public static final int PLAYER = 0;
@@ -43,10 +46,13 @@ public final class World {
 
     private static final int MAX_RUN = 24;
     private static final int MAX_GAP = 64;
+    private static final int BODY_DEPTH = 4;
 
     private static final int COLORED = 1 << 16;
     private static final int WATER = 1 << 17;
     private static final int SOLID = 1 << 18;
+    private static final int FLAT = 1 << 19;
+    private static final int THIN = 1 << 19;
     private static final ConcurrentHashMap<BlockState, Integer> STATES = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Biome, Integer> BIOMES = new ConcurrentHashMap<>();
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
@@ -123,6 +129,10 @@ public final class World {
                 color = map.col;
             }
             water = block == Blocks.WATER || (map == MapColor.WATER && !state.getFluidState().isEmpty());
+            if (map == MapColor.PLANT && !state.canOcclude()
+                    && state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty()) {
+                flags |= THIN;
+            }
         } catch (RuntimeException exception) {
             if (!state.isAir()) {
                 flags |= COLORED;
@@ -134,6 +144,14 @@ public final class World {
         }
         if (state.canOcclude()) {
             flags |= SOLID;
+        }
+        try {
+            if (!water && state.getFluidState().isEmpty()
+                    && state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty()) {
+                flags |= FLAT;
+            }
+        } catch (RuntimeException exception) {
+            flags &= ~FLAT;
         }
         if (state == block.defaultBlockState() && (flags & COLORED) != 0) {
             shared.palette.define(id, color, water);
@@ -182,6 +200,21 @@ public final class World {
                 if (y < minY || (packed & COLORED) == 0) {
                     continue;
                 }
+                if ((packed & THIN) != 0) {
+                    int floor = y - 1;
+                    while (floor >= minY && floor > y - 4) {
+                        int under = info(state(sections, x, floor, z, minY), shared);
+                        if ((under & COLORED) != 0 && (under & THIN) == 0) {
+                            y = floor;
+                            break;
+                        }
+                        floor--;
+                    }
+                }
+                if ((packed & FLAT) != 0 && y > minY && !cut
+                        && (info(state(sections, x, y - 1, z, minY), shared) & (COLORED | FLAT)) == COLORED) {
+                    y--;
+                }
                 data.height[i] = (short) y;
                 data.block[i] = (short) packed;
                 data.light[i] = (byte) (cut ? Region.CUT : 0);
@@ -210,7 +243,17 @@ public final class World {
             int minY, MapStore.Shared shared) {
         int run = 1;
         int y = top - 1;
-        while (run < MAX_RUN && y >= minY && !state(sections, x, y, z, minY).isAir()) {
+        while (run < MAX_RUN && y >= minY) {
+            BlockState state = state(sections, x, y, z, minY);
+            if (state.isAir()) {
+                break;
+            }
+            if (run <= BODY_DEPTH) {
+                int inner = info(state, shared);
+                if ((inner & (COLORED | WATER)) == COLORED) {
+                    data.body[i] = (short) inner;
+                }
+            }
             run++;
             y--;
         }
@@ -345,6 +388,12 @@ public final class World {
 
     public static void command(LocalPlayer player, String command) {
         player.connection.sendCommand(command);
+    }
+
+    public static boolean blocked(ClientLevel level, LocalPlayer player, double ax, double ay, double az, double bx,
+            double by, double bz) {
+        return level.clip(new ClipContext(new Vec3(ax, ay, az), new Vec3(bx, by, bz), ClipContext.Block.VISUAL,
+                ClipContext.Fluid.NONE, player)).getType() != HitResult.Type.MISS;
     }
 
     public static boolean identifying(Minecraft minecraft) {

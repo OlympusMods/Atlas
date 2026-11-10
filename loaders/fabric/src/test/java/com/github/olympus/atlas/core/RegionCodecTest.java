@@ -27,6 +27,7 @@ class RegionCodecTest {
             region.thick[i] = (byte) (i % 5);
             region.gap[i] = (byte) (i % 9);
             region.ground[i] = (short) stone;
+            region.body[i] = (short) stone;
         }
         region.north[10] = 70;
         region.west[500] = -12;
@@ -49,6 +50,7 @@ class RegionCodecTest {
         assertArrayEquals(region.thick, read.thick);
         assertArrayEquals(region.gap, read.gap);
         assertArrayEquals(region.ground, read.ground);
+        assertArrayEquals(region.body, read.body);
         assertArrayEquals(region.north, read.north);
         assertArrayEquals(region.west, read.west);
     }

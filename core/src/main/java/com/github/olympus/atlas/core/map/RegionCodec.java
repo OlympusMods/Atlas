@@ -14,7 +14,7 @@ import java.util.zip.InflaterInputStream;
 
 public final class RegionCodec {
     private static final int MAGIC = 0x41544C53;
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
 
     private RegionCodec() {
     }
@@ -31,6 +31,7 @@ public final class RegionCodec {
             short[] block = blockPalette.localize(region.block);
             short[] under = blockPalette.localize(region.under);
             short[] ground = blockPalette.localize(region.ground);
+            short[] body = blockPalette.localize(region.body);
             Local biomePalette = new Local(biomes);
             short[] biome = biomePalette.localize(region.biome);
             blockPalette.write(out);
@@ -52,6 +53,7 @@ public final class RegionCodec {
             out.write(region.thick);
             out.write(region.gap);
             planes(out, ground);
+            planes(out, body);
         } finally {
             deflater.end();
         }
@@ -93,6 +95,10 @@ public final class RegionCodec {
                 in.readFully(region.gap);
                 planes(in, region.ground);
                 globalize(region.ground, blockIds);
+            }
+            if (version >= 3) {
+                planes(in, region.body);
+                globalize(region.body, blockIds);
             }
         }
         return region;

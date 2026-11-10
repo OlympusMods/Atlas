@@ -7,6 +7,7 @@ public final class Tile {
     public final int rz;
     public final int[][] color = new int[LEVELS][];
     public final short[][] top = new short[LEVELS][];
+    public final int[][] wall = new int[LEVELS][];
     public volatile int[] under = new int[Region.AREA];
     public volatile short[] shape = new short[Region.AREA];
     public volatile int minLevel;
@@ -19,6 +20,7 @@ public final class Tile {
             int side = Region.SIZE >> level;
             color[level] = new int[side * side];
             top[level] = new short[side * side];
+            wall[level] = new int[side * side];
         }
     }
 
@@ -27,6 +29,7 @@ public final class Tile {
         for (int i = 0; i < keep; i++) {
             color[i] = null;
             top[i] = null;
+            wall[i] = null;
         }
         if (keep > 0) {
             under = null;
@@ -41,7 +44,7 @@ public final class Tile {
         long total = 0;
         for (int level = minLevel; level < LEVELS; level++) {
             long side = Region.SIZE >> level;
-            total += side * side * 6;
+            total += side * side * 10;
         }
         return total + (under == null ? 0 : Region.AREA * 6L);
     }

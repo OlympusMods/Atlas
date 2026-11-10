@@ -9,7 +9,7 @@ public final class Region {
     public static final int AREA = SIZE * SIZE;
     public static final short NONE = Short.MIN_VALUE;
     public static final int CUT = 0x10;
-    public static final long BYTES = AREA * 14L + SIZE * 4L;
+    public static final long BYTES = AREA * 16L + SIZE * 4L;
 
     public final int rx;
     public final int rz;
@@ -22,6 +22,7 @@ public final class Region {
     public final byte[] thick = new byte[AREA];
     public final byte[] gap = new byte[AREA];
     public final short[] ground = new short[AREA];
+    public final short[] body = new short[AREA];
     public final short[] north = new short[SIZE];
     public final short[] west = new short[SIZE];
 
@@ -57,6 +58,7 @@ public final class Region {
             System.arraycopy(chunk.thick, from, thick, to, 16);
             System.arraycopy(chunk.gap, from, gap, to, 16);
             System.arraycopy(chunk.ground, from, ground, to, 16);
+            System.arraycopy(chunk.body, from, body, to, 16);
         }
         return changed;
     }
@@ -67,7 +69,7 @@ public final class Region {
                     || chunk.under[from + x] != under[to + x] || chunk.biome[from + x] != biome[to + x]
                     || chunk.depth[from + x] != depth[to + x] || chunk.light[from + x] != light[to + x]
                     || chunk.thick[from + x] != thick[to + x] || chunk.gap[from + x] != gap[to + x]
-                    || chunk.ground[from + x] != ground[to + x]) {
+                    || chunk.ground[from + x] != ground[to + x] || chunk.body[from + x] != body[to + x]) {
                 return false;
             }
         }

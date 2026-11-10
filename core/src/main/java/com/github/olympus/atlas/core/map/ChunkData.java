@@ -16,6 +16,7 @@ public final class ChunkData {
     public final byte[] thick = new byte[AREA];
     public final byte[] gap = new byte[AREA];
     public final short[] ground = new short[AREA];
+    public final short[] body = new short[AREA];
 
     public ChunkData(int cx, int cz) {
         this.cx = cx;

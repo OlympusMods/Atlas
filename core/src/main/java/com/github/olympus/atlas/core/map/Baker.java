@@ -9,6 +9,7 @@ public final class Baker {
         int[] color = tile.color[0];
         short[] top = tile.top[0];
         int[] lower = tile.under;
+        int[] wall = tile.wall[0];
         short[] shape = tile.shape;
         float strength = style.strength() / 100f;
         boolean patched = false;
@@ -19,6 +20,7 @@ public final class Baker {
                 top[i] = h;
                 if (h == Region.NONE) {
                     color[i] = 0;
+                    wall[i] = 0;
                     lower[i] = 0;
                     shape[i] = 0;
                     continue;
@@ -26,6 +28,8 @@ public final class Baker {
                 int id = region.block[i] & 0xFFFF;
                 int biome = region.biome[i] & 0xFFFF;
                 int below = region.ground[i] & 0xFFFF;
+                int inner = region.body[i] & 0xFFFF;
+                wall[i] = inner == 0 ? 0 : 0xFF000000 | surface(inner, biome, style, palette, biomes);
                 if (region.gap[i] != 0 && below != 0) {
                     lower[i] = 0xFF000000 | scale(surface(below, biome, style, palette, biomes), 0.82f);
                     shape[i] = (short) (((region.thick[i] & 0xFF) << 8) | (region.gap[i] & 0xFF));
@@ -133,6 +137,7 @@ public final class Baker {
         for (int level = 1; level < Tile.LEVELS; level++) {
             int side = Region.SIZE >> level;
             int below = side << 1;
+            average(tile.wall[level - 1], tile.wall[level], level, x0, z0, x1, z1);
             int[] color = tile.color[level];
             int[] fine = tile.color[level - 1];
             short[] top = tile.top[level];
@@ -166,6 +171,30 @@ public final class Baker {
                     color[i] = n == 0 ? 0 : 0xFF000000 | ((r / n) << 16) | ((g / n) << 8) | (b / n);
                     top[i] = high;
                 }
+            }
+        }
+    }
+
+    private static void average(int[] fine, int[] coarse, int level, int x0, int z0, int x1, int z1) {
+        int side = Region.SIZE >> level;
+        int below = side << 1;
+        for (int z = z0 >> level; z <= (z1 - 1) >> level; z++) {
+            for (int x = x0 >> level; x <= (x1 - 1) >> level; x++) {
+                int a = (z << 1) * below + (x << 1);
+                int r = 0;
+                int g = 0;
+                int b = 0;
+                int n = 0;
+                for (int k = 0; k < 4; k++) {
+                    int c = fine[a + (k & 1) + (k >> 1) * below];
+                    if ((c >>> 24) != 0) {
+                        r += (c >> 16) & 0xFF;
+                        g += (c >> 8) & 0xFF;
+                        b += c & 0xFF;
+                        n++;
+                    }
+                }
+                coarse[z * side + x] = n == 0 ? 0 : 0xFF000000 | ((r / n) << 16) | ((g / n) << 8) | (b / n);
             }
         }
     }

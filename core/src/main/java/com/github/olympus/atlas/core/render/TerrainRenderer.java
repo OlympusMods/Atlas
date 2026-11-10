@@ -195,8 +195,10 @@ public final class TerrainRenderer {
                 }
             }
             if (enterY <= high) {
+                int inner = high - enterY > (1 << have) ? tile.wall[have][(((bz & Region.MASK) >> have) << bits)
+                        | ((bx & Region.MASK) >> have)] : 0;
                 hitT = t;
-                hitColor = shade(color, sideX ? 0.74 : 0.6);
+                hitColor = shade((inner >>> 24) == 0 ? color : inner, sideX ? 0.74 : 0.6);
             } else {
                 hitT = dy < 0 ? (high - oy) / dy : t;
                 hitColor = color & 0xFFFFFF;
