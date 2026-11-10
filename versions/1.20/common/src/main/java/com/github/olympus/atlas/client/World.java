@@ -52,7 +52,7 @@ public final class World {
     private static final int WATER = 1 << 17;
     private static final int SOLID = 1 << 18;
     private static final int FLAT = 1 << 19;
-    private static final int THIN = 1 << 19;
+    private static final int THIN = 1 << 20;
     private static final ConcurrentHashMap<BlockState, Integer> STATES = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Biome, Integer> BIOMES = new ConcurrentHashMap<>();
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
@@ -210,8 +210,7 @@ public final class World {
                         }
                         floor--;
                     }
-                }
-                if ((packed & FLAT) != 0 && y > minY && !cut
+                } else if ((packed & FLAT) != 0 && y > minY && !cut
                         && (info(state(sections, x, y - 1, z, minY), shared) & (COLORED | FLAT)) == COLORED) {
                     y--;
                 }
@@ -248,11 +247,12 @@ public final class World {
             if (state.isAir()) {
                 break;
             }
-            if (run <= BODY_DEPTH) {
-                int inner = info(state, shared);
-                if ((inner & (COLORED | WATER)) == COLORED) {
-                    data.body[i] = (short) inner;
-                }
+            int inner = info(state, shared);
+            if ((inner & FLAT) != 0) {
+                break;
+            }
+            if (run <= BODY_DEPTH && (inner & (COLORED | WATER)) == COLORED) {
+                data.body[i] = (short) inner;
             }
             run++;
             y--;
@@ -266,7 +266,7 @@ public final class World {
             BlockState state = state(sections, x, y, z, minY);
             if (!state.isAir()) {
                 packed = info(state, shared);
-                if ((packed & COLORED) != 0) {
+                if ((packed & (COLORED | FLAT)) == COLORED) {
                     break;
                 }
             }
