@@ -29,6 +29,11 @@ class RenderTest {
             region.height[i] = (short) height;
             region.block[i] = 1;
         }
+        int roof = (200 << Region.BITS) | 200;
+        region.height[roof] = 80;
+        region.thick[roof] = 2;
+        region.gap[roof] = 14;
+        region.ground[roof] = 2;
         int at = (100 << Region.BITS) | 100;
         region.height[at] = (short) tower;
         region.block[at] = 2;
@@ -80,6 +85,21 @@ class RenderTest {
         assertEquals(49.5, renderer.hitDistance(), 0.05);
         assertFalse(renderer.trace(50.5, 100.0, 50.5, 0.0, 1.0, 0.0, 1000.0, 0.001, 400));
         assertFalse(renderer.trace(-900.0, 100.0, -900.0, -1.0, -0.01, 0.0, 500.0, 0.001, 400));
+    }
+
+    @Test
+    void raysPassUnderAnOverhang() {
+        Tile tile = flat(64, 200);
+        TerrainRenderer renderer = new TerrainRenderer(only(tile));
+        assertTrue(renderer.trace(190.5, 80.5, 200.5, 1.0, 0.0, 0.0, 1000.0, 0.001, 400));
+        assertEquals(9.5, renderer.hitDistance(), 0.05);
+        assertFalse(renderer.trace(190.5, 72.0, 200.5, 1.0, 0.0, 0.0, 300.0, 0.001, 400));
+        assertTrue(renderer.trace(200.5, 100.0, 200.5, 0.0, -1.0, 0.0, 1000.0, 0.001, 400));
+        assertEquals(19.0, renderer.hitDistance(), 0.01);
+        assertTrue(renderer.trace(200.5, 72.0, 200.5, 0.0, -1.0, 0.0, 1000.0, 0.001, 400));
+        assertEquals(7.0, renderer.hitDistance(), 0.01);
+        assertTrue(renderer.trace(200.5, 72.0, 200.5, 0.0, 1.0, 0.0, 1000.0, 0.001, 400));
+        assertEquals(7.0, renderer.hitDistance(), 0.01);
     }
 
     @Test

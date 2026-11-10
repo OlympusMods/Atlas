@@ -24,6 +24,9 @@ class RegionCodecTest {
             region.depth[i] = (byte) (i % 3 == 0 ? 5 : 0);
             region.biome[i] = (short) plains;
             region.light[i] = (byte) (i % 16);
+            region.thick[i] = (byte) (i % 5);
+            region.gap[i] = (byte) (i % 9);
+            region.ground[i] = (short) stone;
         }
         region.north[10] = 70;
         region.west[500] = -12;
@@ -43,6 +46,9 @@ class RegionCodecTest {
         assertArrayEquals(region.depth, read.depth);
         assertArrayEquals(region.biome, read.biome);
         assertArrayEquals(region.light, read.light);
+        assertArrayEquals(region.thick, read.thick);
+        assertArrayEquals(region.gap, read.gap);
+        assertArrayEquals(region.ground, read.ground);
         assertArrayEquals(region.north, read.north);
         assertArrayEquals(region.west, read.west);
     }

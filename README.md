@@ -8,7 +8,7 @@ Press **M** for the map, **B** to add a waypoint where you stand, **V** to switc
 
 - Minimap: round or square, rotating or north up, six zoom levels, any corner, size and opacity, coordinates, biome, light level, compass letters, waypoints, and a radar with separate switches for players, hostile and passive mobs. It can be tilted into a 3D view.
 - Fullscreen map: drag to pan, scroll to zoom, dimension switch, cave layer slider, chunk grid, waypoint list with search, double click to add a waypoint, right click to edit, hide, delete or teleport.
-- 3D map: the same terrain with an orbit camera. Drag to orbit, right drag to move, scroll to zoom. Switching between 2D and 3D keeps the position and dimension.
+- 3D map: the same terrain with an orbit camera, including what is under tree canopies, roofs and other overhangs. Drag to orbit, right drag to move, scroll to zoom. Switching between 2D and 3D keeps the position and dimension.
 - Cave mode: slices the map at a height. Auto turns it on underground and in dimensions with a ceiling.
 - Waypoints: name, color, icon, group, dimension, per waypoint and per group visibility. In the world they are an icon fixed to their block with a beacon beam, and show their name and distance when you look at them or always. Scale, fade distance and what happens behind terrain can be set.
 - Death waypoints with a limit and an expiry, temporary waypoints that go away on arrival or after a while.

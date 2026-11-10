@@ -14,7 +14,7 @@ import java.util.zip.InflaterInputStream;
 
 public final class RegionCodec {
     private static final int MAGIC = 0x41544C53;
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     private RegionCodec() {
     }
@@ -30,6 +30,7 @@ public final class RegionCodec {
             Local blockPalette = new Local(blocks);
             short[] block = blockPalette.localize(region.block);
             short[] under = blockPalette.localize(region.under);
+            short[] ground = blockPalette.localize(region.ground);
             Local biomePalette = new Local(biomes);
             short[] biome = biomePalette.localize(region.biome);
             blockPalette.write(out);
@@ -48,6 +49,9 @@ public final class RegionCodec {
             out.write(region.light);
             planes(out, region.north);
             planes(out, region.west);
+            out.write(region.thick);
+            out.write(region.gap);
+            planes(out, ground);
         } finally {
             deflater.end();
         }
@@ -60,7 +64,7 @@ public final class RegionCodec {
             throw new IOException("not an atlas region");
         }
         int version = head.readByte();
-        if (version != VERSION) {
+        if (version < 1 || version > VERSION) {
             throw new IOException("unknown region version " + version);
         }
         Region region = new Region(rx, rz);
@@ -84,6 +88,12 @@ public final class RegionCodec {
             in.readFully(region.light);
             planes(in, region.north);
             planes(in, region.west);
+            if (version >= 2) {
+                in.readFully(region.thick);
+                in.readFully(region.gap);
+                planes(in, region.ground);
+                globalize(region.ground, blockIds);
+            }
         }
         return region;
     }

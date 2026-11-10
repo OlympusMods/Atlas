@@ -8,6 +8,8 @@ public final class Baker {
             BiomeColors biomes, Tile north, Tile west) {
         int[] color = tile.color[0];
         short[] top = tile.top[0];
+        int[] lower = tile.under;
+        short[] shape = tile.shape;
         float strength = style.strength() / 100f;
         boolean patched = false;
         for (int z = z0; z < z1; z++) {
@@ -17,10 +19,20 @@ public final class Baker {
                 top[i] = h;
                 if (h == Region.NONE) {
                     color[i] = 0;
+                    lower[i] = 0;
+                    shape[i] = 0;
                     continue;
                 }
                 int id = region.block[i] & 0xFFFF;
                 int biome = region.biome[i] & 0xFFFF;
+                int below = region.ground[i] & 0xFFFF;
+                if (region.gap[i] != 0 && below != 0) {
+                    lower[i] = 0xFF000000 | scale(surface(below, biome, style, palette, biomes), 0.82f);
+                    shape[i] = (short) (((region.thick[i] & 0xFF) << 8) | (region.gap[i] & 0xFF));
+                } else {
+                    lower[i] = 0;
+                    shape[i] = 0;
+                }
                 int rgb = surface(id, biome, style, palette, biomes);
                 if (palette.water(id)) {
                     int depth = region.depth[i] & 0xFF;

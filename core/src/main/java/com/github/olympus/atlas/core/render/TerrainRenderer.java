@@ -167,6 +167,33 @@ public final class TerrainRenderer {
                 t = exit + 1.0e-4 + exit * 1.0e-7;
                 continue;
             }
+            short[] shape = have == 0 ? tile.shape : null;
+            int form = shape == null ? 0 : shape[((bz & Region.MASK) << Region.BITS) | (bx & Region.MASK)] & 0xFFFF;
+            if (form != 0) {
+                double slab = high - (form >> 8);
+                double floor = slab - (form & 0xFF);
+                int below = tile.under[((bz & Region.MASK) << Region.BITS) | (bx & Region.MASK)];
+                if (enterY < slab && enterY >= floor) {
+                    if (dy > 0 && exitY > slab) {
+                        hitT = (slab - oy) / dy;
+                        hitColor = shade(color, 0.5);
+                        return true;
+                    }
+                    if (dy < 0 && exitY < floor) {
+                        hitT = (floor - oy) / dy;
+                        hitColor = below & 0xFFFFFF;
+                        return true;
+                    }
+                    sideX = edgeX < edgeZ;
+                    t = exit + 1.0e-4 + exit * 1.0e-7;
+                    continue;
+                }
+                if (enterY < floor) {
+                    hitT = t;
+                    hitColor = shade(below, sideX ? 0.74 : 0.6);
+                    return true;
+                }
+            }
             if (enterY <= high) {
                 hitT = t;
                 hitColor = shade(color, sideX ? 0.74 : 0.6);
