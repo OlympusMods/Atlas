@@ -1,5 +1,6 @@
 package com.github.olympus.atlas.core;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +14,7 @@ import com.github.olympus.atlas.core.map.Tile;
 import com.github.olympus.atlas.core.map.TileSource;
 import com.github.olympus.atlas.core.render.BeamShape;
 import com.github.olympus.atlas.core.render.Camera;
+import com.github.olympus.atlas.core.render.MapPages;
 import com.github.olympus.atlas.core.render.MapPainter;
 import com.github.olympus.atlas.core.render.TerrainRenderer;
 import java.util.ArrayList;
@@ -73,6 +75,49 @@ class RenderTest {
         assertEquals(0, MapPainter.level(1.0));
         assertEquals(1, MapPainter.level(0.5));
         assertEquals(3, MapPainter.level(0.125));
+    }
+
+    @Test
+    void pagesMatchThePainter() {
+        Tile tile = flat(64, 200);
+        for (int level = 0; level < 4; level++) {
+            double blocks = MapPages.blocks(level);
+            int[] page = new int[MapPages.AREA];
+            int[] painted = new int[MapPages.AREA];
+            for (int px = -1; px <= 0; px++) {
+                MapPages.paint(only(tile), px, 0, level, 0xFF123456, page);
+                MapPainter.paint(only(tile), new MapPainter.View((px + 0.5) * blocks, 0.5 * blocks,
+                        1.0 / (1 << level), 0.0, 0xFF123456, false), painted, MapPages.SIZE, MapPages.SIZE, 0,
+                        MapPages.SIZE);
+                assertArrayEquals(painted, page, "level " + level + " page " + px);
+            }
+        }
+    }
+
+    @Test
+    void pagesFallBackToCoarserTiles() {
+        Tile tile = flat(64, 200);
+        tile.trim(2);
+        int[] page = new int[MapPages.AREA];
+        MapPages.paint(only(tile), 0, 0, 0, 0xFF123456, page);
+        assertEquals(0xFF808080, page[0]);
+        assertEquals(tile.color[2][(25 << 7) | 25], page[(100 << 9) | 100]);
+    }
+
+    @Test
+    void pagesCoverTheScreenWithoutGaps() {
+        double scale = 0.37;
+        double center = -1234.56;
+        int level = MapPainter.level(scale);
+        assertEquals(1, level);
+        int first = MapPages.first(center, 1920.0, scale, level);
+        int last = MapPages.last(center, 1920.0, scale, level);
+        assertTrue(MapPages.edge(first, level, center, scale, 1920.0) <= 0);
+        assertTrue(MapPages.edge(last + 1, level, center, scale, 1920.0) >= 1920);
+        assertTrue(MapPages.edge(first + 1, level, center, scale, 1920.0) > 0);
+        assertTrue(MapPages.edge(last, level, center, scale, 1920.0) < 1920);
+        assertTrue(MapPages.key(level, first, -3) != MapPages.key(level, first, 3));
+        assertTrue(MapPages.key(level, -1, 0) != MapPages.key(level + 1, -1, 0));
     }
 
     @Test

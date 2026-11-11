@@ -70,6 +70,7 @@ public final class MapStore implements TileSource {
     private final Shared shared;
     private final ConcurrentHashMap<Long, Entry> entries = new ConcurrentHashMap<>();
     private final Set<Long> onDisk = ConcurrentHashMap.newKeySet();
+    private final AtomicLong revision = new AtomicLong();
     private volatile boolean closed;
     private volatile long lastSave = System.nanoTime();
     private volatile long usedAt = System.nanoTime();
@@ -149,6 +150,29 @@ public final class MapStore implements TileSource {
         return tile;
     }
 
+    public long stamp(int rx, int rz, int span) {
+        long now = System.nanoTime();
+        int style = shared.styleKey();
+        long stamp = 0;
+        usedAt = now;
+        for (int z = rz; z < rz + span; z++) {
+            for (int x = rx; x < rx + span; x++) {
+                Entry entry = entries.get(Region.key(x, z));
+                Tile tile = entry == null ? null : entry.tile;
+                if (tile == null) {
+                    stamp *= 31;
+                    continue;
+                }
+                entry.usedAt = now;
+                if (entry.stale || tile.style != style) {
+                    request(entry);
+                }
+                stamp = stamp * 31 + tile.revision;
+            }
+        }
+        return stamp;
+    }
+
     public Tile peek(int rx, int rz) {
         Entry entry = entries.get(Region.key(rx, rz));
         return entry == null ? null : entry.tile;
@@ -216,6 +240,7 @@ public final class MapStore implements TileSource {
         }
         Baker.mip(tile, 0, 0, Region.SIZE, Region.SIZE);
         tile.style = key;
+        tile.revision = revision.incrementAndGet();
         entry.tile = tile;
         entry.stale = false;
         entry.apronKnown = !Baker.missingApron(entry.raw);
@@ -321,6 +346,7 @@ public final class MapStore implements TileSource {
             entry.dirty = true;
         }
         Baker.mip(tile, x0, z0, x1, z1);
+        tile.revision = revision.incrementAndGet();
     }
 
     private void apron(ChunkData chunk, int rx, int rz, int base, boolean south) {

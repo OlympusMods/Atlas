@@ -12,6 +12,7 @@ public final class Tile {
     public volatile short[] shape = new short[Region.AREA];
     public volatile int minLevel;
     public volatile int style;
+    public volatile long revision;
 
     public Tile(int rx, int rz) {
         this.rx = rx;
