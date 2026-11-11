@@ -28,7 +28,7 @@ description='''Client-side minimap, world map and waypoints with a 2D and a 3D v
 [[dependencies.atlas]]
     modId="proteus"
     mandatory=true
-    versionRange="[1.1.0,)"
+    versionRange="[1.1.1,)"
     ordering="NONE"
     side="BOTH"
 
