@@ -77,6 +77,8 @@
   "atlas.option.mapGrid.tooltip": "Draw chunk borders on the fullscreen map",
   "atlas.option.mapSmoothZoom": "Smooth zoom",
   "atlas.option.mapSmoothZoom.tooltip": "Glide between zoom levels on the fullscreen map",
+  "atlas.option.mapGpu": "Draw from textures",
+  "atlas.option.mapGpu.tooltip": "Keep the flat fullscreen map in textures on the graphics card, so it is sharp at any display size and moves at the full frame rate. Turn off to draw every frame on the processor",
   "atlas.option.mapWaypointList": "Waypoint list",
   "atlas.option.mapWaypointList.tooltip": "Open the fullscreen map with the waypoint list showing",
   "atlas.option.teleport": "Click to teleport",

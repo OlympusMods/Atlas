@@ -184,6 +184,8 @@ public final class AtlasUi extends UiShell {
         y += LINE;
         config.mapSmoothZoom = toggle("mapSmoothZoom", y, config.mapSmoothZoom);
         y += LINE;
+        config.mapGpu = toggle("mapGpu", y, config.mapGpu);
+        y += LINE;
         config.mapWaypointList = toggle("mapWaypointList", y, config.mapWaypointList);
         y += LINE;
         config.teleport = toggle("teleport", y, config.teleport);

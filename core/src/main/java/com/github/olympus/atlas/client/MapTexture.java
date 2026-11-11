@@ -24,6 +24,10 @@ public final class MapTexture {
         return texture != null;
     }
 
+    public boolean failed() {
+        return failed;
+    }
+
     public void upload(int[] abgr, int w, int h) {
         if (failed) {
             return;

@@ -81,6 +81,7 @@ public final class AtlasConfig {
     public CaveMode caveMode = CaveMode.AUTO;
     public boolean mapGrid = false;
     public boolean mapSmoothZoom = true;
+    public boolean mapGpu = true;
     public boolean mapWaypointList = true;
     public boolean teleport = false;
     public String teleportCommand = "tp @s {x} {y} {z}";

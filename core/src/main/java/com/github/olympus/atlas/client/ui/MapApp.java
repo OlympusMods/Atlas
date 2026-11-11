@@ -6,6 +6,7 @@ import com.github.olympus.atlas.client.AtlasMenu;
 import com.github.olympus.atlas.client.Compat;
 import com.github.olympus.atlas.client.KeyBindings;
 import com.github.olympus.atlas.client.MapTexture;
+import com.github.olympus.atlas.client.PageLayer;
 import com.github.olympus.atlas.client.World;
 import com.github.olympus.atlas.core.AtlasConfig;
 import com.github.olympus.atlas.core.map.MapStore;
@@ -49,6 +50,7 @@ public final class MapApp extends UiShell implements RawInput {
 
     private final MapTexture texture = new MapTexture("fullscreen");
     private final AsyncFrame<Params> frames;
+    private final PageLayer pages;
     private final double[] point = new double[3];
     private final List<int[]> blocked = new ArrayList<>();
 
@@ -99,6 +101,7 @@ public final class MapApp extends UiShell implements RawInput {
         Minecraft minecraft = Minecraft.getInstance();
         frames = new AsyncFrame<>(Atlas.workers(), Atlas.threads(), true, this::paint,
                 (params, frame) -> MapTexture.abgr(frame.pixels, 0, frame.pixels.length));
+        pages = new PageLayer(Atlas.workers(), Atlas.threads());
         AtlasConfig config = Atlas.config();
         LocalPlayer player = minecraft.player;
         if (player != null) {
@@ -129,6 +132,7 @@ public final class MapApp extends UiShell implements RawInput {
     public void removed() {
         frames.clear();
         texture.close();
+        pages.close();
         AtlasConfig config = Atlas.config();
         if (config.mapGrid != grid || config.mapWaypointList != list) {
             config.mapGrid = grid;
@@ -294,6 +298,7 @@ public final class MapApp extends UiShell implements RawInput {
             ground = top;
         }
         lastState = new double[0];
+        shownSerial = -1;
     }
 
     private MapStore store() {
@@ -406,21 +411,36 @@ public final class MapApp extends UiShell implements RawInput {
             scale = targetScale;
         }
         MapStore store = store();
-        if (store != null) {
-            request(store, config, width, height);
-        }
-        AsyncFrame.Frame<Params> frame = frames.take();
-        if (frame != null && frame.serial != shownSerial) {
-            shownSerial = frame.serial;
-            shown = frame.params;
-            shownRatio = frame.width / (double) Math.max(1, width);
-            shownDepth = frame.depth;
-            depthWidth = frame.width;
-            depthHeight = frame.height;
-            texture.upload(frame.pixels, frame.width, frame.height);
-        }
+        boolean paged = !terrain && config.mapGpu && pages.usable();
         canvas.fill(0, 0, width, height, BACKGROUND);
-        texture.draw(canvas, 0, 0, width, height);
+        if (paged) {
+            shown = store == null ? null : new Params(store, new MapPainter.View(centerX, centerZ, scale, 0.0,
+                    BACKGROUND, grid), null);
+            shownRatio = guiScale;
+            shownDepth = null;
+            shownSerial = -1;
+            if (store != null) {
+                pages.draw(canvas, store, centerX, centerZ, scale, width, height, guiScale, BACKGROUND);
+                if (grid) {
+                    gridLines(canvas, width, height);
+                }
+            }
+        } else {
+            if (store != null) {
+                request(store, config, width, height);
+            }
+            AsyncFrame.Frame<Params> frame = frames.take();
+            if (frame != null && frame.serial != shownSerial) {
+                shownSerial = frame.serial;
+                shown = frame.params;
+                shownRatio = frame.width / (double) Math.max(1, width);
+                shownDepth = frame.depth;
+                depthWidth = frame.width;
+                depthHeight = frame.height;
+                texture.upload(frame.pixels, frame.width, frame.height);
+            }
+            texture.draw(canvas, 0, 0, width, height);
+        }
         markers(canvas, minecraft, width, height);
         blocked.clear();
         if (!modal()) {
@@ -445,6 +465,35 @@ public final class MapApp extends UiShell implements RawInput {
     private double shownRatio = 1.0;
     private int depthWidth = 1;
     private int depthHeight = 1;
+
+    private void gridLines(Canvas canvas, int width, int height) {
+        int step = scale >= 0.75 ? 16 : scale >= 0.04 ? Region.SIZE : 0;
+        if (step == 0) {
+            return;
+        }
+        double screenWidth = width * guiScale;
+        double screenHeight = height * guiScale;
+        int right = (int) Math.ceil(screenWidth);
+        int bottom = (int) Math.ceil(screenHeight);
+        float unit = (float) (1.0 / guiScale);
+        canvas.push();
+        canvas.scale(unit, unit);
+        for (double x = Math.ceil((centerX - screenWidth / 2.0 / scale) / step) * step;; x += step) {
+            int at = (int) Math.round((x - centerX) * scale + screenWidth / 2.0);
+            if (at >= right) {
+                break;
+            }
+            canvas.fill(at, 0, 1, bottom, 0x40000000);
+        }
+        for (double z = Math.ceil((centerZ - screenHeight / 2.0 / scale) / step) * step;; z += step) {
+            int at = (int) Math.round((z - centerZ) * scale + screenHeight / 2.0);
+            if (at >= bottom) {
+                break;
+            }
+            canvas.fill(0, at, right, 1, 0x40000000);
+        }
+        canvas.pop();
+    }
 
     private void drag() {
         if (dragButton < 0) {
