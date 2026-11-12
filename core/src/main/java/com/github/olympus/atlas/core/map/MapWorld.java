@@ -69,13 +69,16 @@ public final class MapWorld {
 
     public MapStore store(String dimension, int layer) {
         remember(dimension);
-        return stores.computeIfAbsent(dimension + "#" + layer, key -> {
-            int colon = dimension.indexOf(':');
-            String space = colon < 0 ? "minecraft" : dimension.substring(0, colon);
-            String name = (colon < 0 ? dimension : dimension.substring(colon + 1)).replace("/", "--");
-            String folder = layer == SURFACE ? "surface" : "y" + layer;
-            return new MapStore(root.resolve("map").resolve(clean(space)).resolve(clean(name)).resolve(folder), shared);
-        });
+        return stores.computeIfAbsent(dimension + "#" + layer,
+                key -> new MapStore(directory(root, dimension, layer), shared));
+    }
+
+    public static Path directory(Path root, String dimension, int layer) {
+        int colon = dimension.indexOf(':');
+        String space = colon < 0 ? "minecraft" : dimension.substring(0, colon);
+        String name = (colon < 0 ? dimension : dimension.substring(colon + 1)).replace("/", "--");
+        String folder = layer == SURFACE ? "surface" : "y" + layer;
+        return root.resolve("map").resolve(clean(space)).resolve(clean(name)).resolve(folder);
     }
 
     public static String clean(String name) {

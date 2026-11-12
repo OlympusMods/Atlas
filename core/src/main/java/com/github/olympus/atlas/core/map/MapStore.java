@@ -228,6 +228,10 @@ public final class MapStore implements TileSource {
     }
 
     private Path file(int rx, int rz) {
+        return file(dir, rx, rz);
+    }
+
+    static Path file(Path dir, int rx, int rz) {
         return dir.resolve("r." + rx + "." + rz + ".atl");
     }
 
