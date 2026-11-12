@@ -842,7 +842,7 @@ public final class MapApp extends UiShell implements RawInput {
         }
         String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         Path file = minecraft.gameDirectory.toPath().resolve("atlas").resolve("export")
-                .resolve(world.root().getFileName() + "-" + stamp + ".json");
+                .resolve(Atlas.label() + "-" + stamp + ".json");
         WaypointStore.Document document = Atlas.waypoints().document();
         Atlas.shared().io.execute(() -> {
             boolean saved = WaypointStore.write(file, document);

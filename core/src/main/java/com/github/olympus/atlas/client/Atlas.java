@@ -8,6 +8,7 @@ import com.github.olympus.atlas.core.map.MapStore;
 import com.github.olympus.atlas.core.map.MapWorld;
 import com.github.olympus.atlas.core.map.Region;
 import com.github.olympus.atlas.core.map.Style;
+import com.github.olympus.atlas.core.map.SubWorlds;
 import com.github.olympus.atlas.core.waypoint.Waypoint;
 import com.github.olympus.atlas.core.waypoint.WaypointStore;
 import com.github.olympus.proteus.client.ProteusScreen;
@@ -41,6 +42,30 @@ public final class Atlas {
     private static final Map<Long, Integer> SCANNED_CAVE = new HashMap<>();
     private static final Map<String, Boolean> OCCLUDED = new HashMap<>();
     private static final double NEAR = 64.0;
+    private static final int PROBE_CHUNKS = 5;
+    private static final int PROBE_RADIUS = 3;
+    private static final int NOTE_TICKS = 100;
+    private static final int NOTE_BLOCKS = 8;
+    private static final int PROBE_WAIT = 20;
+    private static final int PROBE_LIMIT = 200;
+
+    private static final class Seek {
+        final Long seed;
+        final boolean split;
+        final boolean boundary;
+        final String previous;
+        boolean checked;
+        boolean submitted;
+        int age;
+        volatile String result;
+
+        Seek(Long seed, boolean split, boolean boundary, String previous) {
+            this.seed = seed;
+            this.split = split;
+            this.boundary = boundary;
+            this.previous = previous;
+        }
+    }
 
     private static AtlasConfig config;
     private static ExecutorService work;
@@ -48,7 +73,18 @@ public final class Atlas {
     private static MapStore.Shared shared;
     private static volatile MapWorld world;
     private static volatile WaypointStore waypoints;
+    private static volatile SubWorlds index;
+    private static volatile int epoch;
     private static String session;
+    private static String located;
+    private static Seek seek;
+    private static Object lastLink;
+    private static Long seed;
+    private static boolean split;
+    private static int[] spot;
+    private static int[] noted;
+    private static String spotDimension;
+    private static volatile String forced;
     private static String dimension = "minecraft:overworld";
     private static ClientLevel lastLevel;
     private static int ticks;
@@ -135,6 +171,33 @@ public final class Atlas {
 
     public static MapWorld world() {
         return world;
+    }
+
+    public static List<String> worlds() {
+        SubWorlds known = index;
+        return known == null || !split || world == null || seek != null ? List.of() : known.ids();
+    }
+
+    public static String located() {
+        return located;
+    }
+
+    public static void assign(String id) {
+        SubWorlds known = index;
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft.player;
+        if (known == null || player == null || !split || seek != null) {
+            return;
+        }
+        BlockPos pos = player.blockPosition();
+        SubWorlds.Sight sight = new SubWorlds.Sight(seed, dimension, MapWorld.SURFACE, pos.getX(), pos.getY(),
+                pos.getZ(), List.of());
+        io.execute(() -> forced = known.assign(id, sight));
+    }
+
+    public static String label() {
+        String name = session == null ? "world" : session;
+        return located == null || located.isEmpty() ? name : name + "-" + located;
     }
 
     public static WaypointStore waypoints() {
@@ -263,8 +326,15 @@ public final class Atlas {
             join(minecraft, key);
         }
         if (level != lastLevel) {
+            String before = lastLevel == null ? null : dimension;
             lastLevel = level;
             dimension = Ids.dimension(level);
+            Object link = World.link(minecraft);
+            remember();
+            split = World.remote(minecraft) && config().subWorlds;
+            seed = split ? World.seed(level) : null;
+            seek = new Seek(seed, split, link != lastLink || dimension.equals(before), located);
+            lastLink = link;
             ceiling = World.ceiling(level);
             SCANNED.clear();
             SCANNED_CAVE.clear();
@@ -277,6 +347,11 @@ public final class Atlas {
             World.blocks(shared);
             List<String> names = World.blockNames();
             work.execute(() -> BlockColorLoader.load(names, shared));
+        }
+        if (seek != null) {
+            seek(level, player);
+        } else {
+            follow(player);
         }
         keys(minecraft, player);
         if (ticks % 10 == 0) {
@@ -299,24 +374,168 @@ public final class Atlas {
     private static void join(Minecraft minecraft, String key) {
         session = key;
         Path root = minecraft.gameDirectory.toPath().resolve("atlas").resolve(key);
-        world = new MapWorld(root, shared);
         FAIR.reset();
         wasDead = false;
-        io.execute(() -> waypoints = new WaypointStore(root.resolve("waypoints.json")));
+        io.execute(() -> index = new SubWorlds(root));
     }
 
     private static void leave() {
+        close();
+        index = null;
+        session = null;
+        located = null;
+        seek = null;
+        forced = null;
+        split = false;
+        seed = null;
+        lastLink = null;
+        lastLevel = null;
+        BLIPS.clear();
+        FAIR.reset();
+    }
+
+    private static void seek(ClientLevel level, LocalPlayer player) {
+        SubWorlds known = index;
+        Seek current = seek;
+        if (known == null) {
+            return;
+        }
+        if (!current.split) {
+            open(known, SubWorlds.ROOT);
+            seek = null;
+            return;
+        }
+        if (!current.checked) {
+            current.checked = true;
+            String id = known.bySeed(current.seed);
+            if (id != null) {
+                open(known, id);
+            } else {
+                close();
+            }
+        }
+        if (current.submitted) {
+            String id = current.result;
+            if (id != null) {
+                open(known, id);
+                seek = null;
+            }
+            return;
+        }
+        current.age++;
+        int centerX = player.blockPosition().getX() >> 4;
+        int centerZ = player.blockPosition().getZ() >> 4;
+        List<LevelChunk> chunks = new ArrayList<>();
+        LevelChunk here = World.chunk(level, centerX, centerZ);
+        if (here != null) {
+            chunks.add(here);
+        }
+        List<int[]> spots = new ArrayList<>();
+        spots.add(new int[] {centerX, centerZ});
+        for (int dz = -PROBE_RADIUS; dz <= PROBE_RADIUS && here != null; dz++) {
+            for (int dx = -PROBE_RADIUS; dx <= PROBE_RADIUS; dx++) {
+                LevelChunk near = dx == 0 && dz == 0 ? null : World.chunk(level, centerX + dx, centerZ + dz);
+                if (near != null) {
+                    chunks.add(near);
+                    spots.add(new int[] {centerX + dx, centerZ + dz});
+                }
+            }
+        }
+        boolean enough = here != null && (chunks.size() >= PROBE_CHUNKS || current.age > PROBE_WAIT);
+        if (!enough && current.age <= PROBE_LIMIT) {
+            return;
+        }
+        current.submitted = true;
+        int slice = ceiling ? MapWorld.layer(player.blockPosition().getY()) : MapWorld.SURFACE;
+        int minY = Heights.minY(level);
+        int maxY = Heights.maxY(level);
+        BlockPos pos = player.blockPosition();
+        String place = dimension;
+        work.execute(() -> {
+            List<ChunkData> scanned = new ArrayList<>();
+            for (int i = 0; i < chunks.size(); i++) {
+                try {
+                    scanned.add(World.scan(chunks.get(i), spots.get(i)[0], spots.get(i)[1], minY, maxY, slice,
+                            shared));
+                } catch (RuntimeException exception) {
+                    AtlasClient.LOGGER.debug("Atlas could not scan a chunk to recognise the world", exception);
+                }
+            }
+            io.execute(() -> {
+                try {
+                    current.result = known.resolve(new SubWorlds.Sight(current.seed, place, slice, pos.getX(),
+                            pos.getY(), pos.getZ(), scanned), current.boundary, current.previous, shared.biomes);
+                } catch (RuntimeException exception) {
+                    AtlasClient.LOGGER.warn("Atlas could not tell which world this is", exception);
+                    current.result = current.previous == null ? SubWorlds.ROOT : current.previous;
+                }
+            });
+        });
+    }
+
+    private static void follow(LocalPlayer player) {
+        SubWorlds known = index;
+        String chosen = forced;
+        if (chosen != null && known != null) {
+            forced = null;
+            spot = null;
+            open(known, chosen);
+        }
+        if (world == null || !split) {
+            return;
+        }
+        BlockPos pos = player.blockPosition();
+        spot = new int[] {pos.getX(), pos.getY(), pos.getZ()};
+        spotDimension = dimension;
+        if (ticks % NOTE_TICKS == 0 && (noted == null || Math.abs(noted[0] - spot[0]) + Math.abs(noted[1] - spot[1])
+                + Math.abs(noted[2] - spot[2]) >= NOTE_BLOCKS)) {
+            int[] at = spot;
+            String id = located;
+            String place = dimension;
+            noted = at;
+            io.execute(() -> known.leave(id, place, at[0], at[1], at[2]));
+        }
+    }
+
+    private static void remember() {
+        SubWorlds known = index;
+        int[] at = spot;
+        String id = located;
+        String place = spotDimension;
+        spot = null;
+        noted = null;
+        if (known != null && at != null && id != null && world != null && io != null) {
+            io.execute(() -> known.leave(id, place, at[0], at[1], at[2]));
+        }
+    }
+
+    private static void open(SubWorlds known, String id) {
+        if (world != null && id.equals(located)) {
+            return;
+        }
+        close();
+        located = id;
+        Path root = known.folder(id);
+        int opened = epoch;
+        world = new MapWorld(root, shared);
+        io.execute(() -> {
+            WaypointStore loaded = new WaypointStore(root.resolve("waypoints.json"));
+            if (opened == epoch) {
+                waypoints = loaded;
+            }
+        });
+    }
+
+    private static void close() {
+        remember();
         MapWorld closing = world;
         WaypointStore saving = waypoints;
+        epoch++;
         world = null;
         waypoints = null;
-        session = null;
-        lastLevel = null;
         SCANNED.clear();
         SCANNED_CAVE.clear();
-        BLIPS.clear();
         OCCLUDED.clear();
-        FAIR.reset();
         if (io != null) {
             io.execute(() -> {
                 if (saving != null) {
@@ -451,7 +670,7 @@ public final class Atlas {
 
     private static void scan(Minecraft minecraft, ClientLevel level, LocalPlayer player) {
         MapWorld current = world;
-        if (current == null) {
+        if (current == null || seek != null) {
             return;
         }
         AtlasConfig settings = config();

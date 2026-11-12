@@ -6,6 +6,7 @@ import com.github.olympus.proteus.client.ui.ButtonKind;
 import com.github.olympus.proteus.client.ui.Theme;
 import com.github.olympus.proteus.client.ui.UiHost;
 import com.github.olympus.proteus.client.ui.UiShell;
+import java.util.List;
 import java.util.Locale;
 
 public final class AtlasUi extends UiShell {
@@ -277,6 +278,20 @@ public final class AtlasUi extends UiShell {
         config.saveIntervalSeconds = (int) number("saveIntervalSeconds", y, config.saveIntervalSeconds, 5, 5, 600,
                 config.saveIntervalSeconds + " s");
         y += LINE;
+        config.subWorlds = toggle("subWorlds", y, config.subWorlds);
+        y += LINE;
+        List<String> worlds = Atlas.worlds();
+        if (!worlds.isEmpty()) {
+            label("world", y);
+            int at = Math.max(0, worlds.indexOf(Atlas.located()));
+            int change = gui().stepper("world", rowX + rowW - stepperW, y, stepperW, ROW,
+                    text("atlas.value.world", at + 1, worlds.size()), text("atlas.option.world.tooltip"), at > 0,
+                    true);
+            if (change != 0) {
+                Atlas.assign(at + change < worlds.size() ? worlds.get(at + change) : null);
+            }
+            y += LINE;
+        }
         long used = Atlas.shared().used.get() >> 20;
         gui().text(gui().fit(text("atlas.screen.memory", used, config.memoryLimitMb), rowW), rowX,
                 gui().textY(y, ROW), gui().theme().textSecondary());

@@ -110,6 +110,7 @@ public final class AtlasConfig {
     public int saveIntervalSeconds = 30;
 
     public boolean honorServerRules = true;
+    public boolean subWorlds = true;
 
     public AtlasConfig sanitize() {
         if (minimapShape == null) {

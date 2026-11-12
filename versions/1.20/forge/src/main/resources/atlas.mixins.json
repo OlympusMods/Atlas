@@ -11,7 +11,8 @@
     "ChatMixin",
     "ClientTickMixin",
     "FovMixin",
-    "NativeImageAccessor"
+    "NativeImageAccessor",
+    "SeedAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

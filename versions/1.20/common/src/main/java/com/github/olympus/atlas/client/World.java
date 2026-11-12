@@ -4,6 +4,7 @@ import com.github.olympus.atlas.core.map.ChunkData;
 import com.github.olympus.atlas.core.map.MapStore;
 import com.github.olympus.atlas.core.map.MapWorld;
 import com.github.olympus.atlas.core.map.Region;
+import com.github.olympus.atlas.mixin.SeedAccessor;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +84,19 @@ public final class World {
 
     public static boolean remote(Minecraft minecraft) {
         return !minecraft.hasSingleplayerServer();
+    }
+
+    public static Object link(Minecraft minecraft) {
+        return minecraft.gameMode;
+    }
+
+    public static Long seed(ClientLevel level) {
+        try {
+            long seed = ((SeedAccessor) level.getBiomeManager()).atlas$seed();
+            return seed == 0L ? null : seed;
+        } catch (RuntimeException exception) {
+            return null;
+        }
     }
 
     public static void blocks(MapStore.Shared shared) {
