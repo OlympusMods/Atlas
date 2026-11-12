@@ -15,6 +15,7 @@ def curseforgeId = '1801188'
 def modrinthSide = 'client_only'
 def curseforgeClient = true
 def curseforgeServer = false
+def curseforgeSlugs = ['proteus': 'proteus-by-olympus']
 def modrinthReady = !modrinthId.startsWith('TEMPLATE_')
 def curseforgeReady = !curseforgeId.startsWith('TEMPLATE_')
 
@@ -77,7 +78,7 @@ publishMods {
             javaVersions.add(JavaVersion.toVersion(info.java))
             clientRequired = curseforgeClient
             serverRequired = curseforgeServer
-            info.requires.each { requires(it) }
+            info.requires.each { requires(curseforgeSlugs.get(it, it)) }
         }
     }
 }
