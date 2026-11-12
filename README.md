@@ -7,13 +7,14 @@ Press **M** for the map, **B** to add a waypoint where you stand, **V** to switc
 ## What it does
 
 - Minimap: round or square, rotating or north up, six zoom levels, any corner, size and opacity, coordinates, biome, light level, compass letters, waypoints, and a radar with separate switches for players, hostile and passive mobs. Hold the player list key (Tab) and the radar names every entity and dropped item. It can be tilted into a 3D view.
-- Fullscreen map: drag to pan, scroll to zoom, dimension switch, cave layer slider, chunk grid, waypoint list with search, double click to add a waypoint, right click to edit, hide, delete or teleport.
+- Fullscreen map: drag to pan, scroll to zoom, dimension switch, cave layer slider, chunk grid, waypoint list with search, double click to add a waypoint, right click to edit, hide, delete or teleport. The 2D view is drawn at the full resolution of the display, whatever its size.
 - 3D map: the same terrain with an orbit camera, including what is under tree canopies, roofs and other overhangs. Drag to orbit, right drag to move, scroll to zoom. Switching between 2D and 3D keeps the position and dimension.
 - Cave mode: slices the map at a height. Auto turns it on underground and in dimensions with a ceiling.
 - Waypoints: name, color, icon, group, dimension, per waypoint and per group visibility. In the world they are an icon fixed to their block with a beacon beam, and show their name and distance when you look at them or always. Scale, fade distance and what happens behind terrain can be set.
 - Death waypoints with a limit and an expiry, temporary waypoints that go away on arrival or after a while.
 - Import and export as JSON. Importers for Xaero's Minimap (`XaeroWaypoints/<world>/dim%*/*.txt`), JourneyMap (`journeymap/data/*/<world>/waypoints/*.json`) and VoxelMap (`voxelmap/*.points`). JourneyMap's newer single file NBT store is not read.
 - Click to teleport is off by default, and only shown when you have permission to run the command.
+- Worlds behind one server address, like a lobby and a survival world on a proxy, each get their own map and waypoints.
 
 Every option is in the Atlas card of the [Proteus](https://github.com/OlympusMods/Proteus) menu and in `config/atlas.json`. All keys are normal keybinds under Controls, Atlas.
 
@@ -24,10 +25,26 @@ config/atlas.json                                   settings
 atlas/<world>/waypoints.json                        waypoints of one world or server
 atlas/<world>/map/<namespace>/<dimension>/surface   explored regions, 512 x 512 blocks per file
 atlas/<world>/map/<namespace>/<dimension>/y<N>      cave layers, one folder per 8 blocks of height
+atlas/<world>/worlds.json                           the worlds seen behind this server address
+atlas/<world>/worlds/<N>/                           waypoints and map of the second world and up
 atlas/export, atlas/import                          waypoint exports and files to import
 ```
 
 `<world>` is `sp_<save folder>` or `mp_<server address>`.
+
+## Worlds on one address
+
+A proxy puts several worlds behind one address, and they would all draw into one map. Atlas tells them apart on its own and keeps what it knows about each in `worlds.json`. No single sign is reliable everywhere, so it weighs several each time you enter a world:
+
+- The seed hash the server sends. It is checked against the saved map, so a network that sends the same hash for every world, or a new one on every join, is found out and its hashes are ignored from then on.
+- Where you were. Atlas remembers where you last stood in every world and where you arrive when you join, and coming back to one of those places counts for that world.
+- The terrain around you, compared with the maps already saved. Biomes count more than heights, because building, digging and a rebuilt lobby change the heights but not the biomes. An area with a single biome is not enough to be sure.
+
+A world that fits none of the known ones starts a new map in `worlds/<N>`. Going through a portal stays in the same world. Until Atlas has decided, nothing is drawn into any map.
+
+It can still be wrong, mostly on servers that hide the seed and drop you in a random unexplored place. "This world" in the Data tab of the settings steps through the known worlds or starts a new one, and Atlas remembers that answer. What only the server knows, like a world behind a proxy that looks exactly like another, it cannot find out.
+
+The first world keeps using `atlas/<world>` itself, so maps from before this existed carry on. A map that already has two worlds drawn over each other stays that way, delete its folder to start clean. "Separate worlds on one address" in the settings turns all of this off.
 
 ## Server rules
 
@@ -40,7 +57,9 @@ The rules reset when you leave the server. "Follow server rules" in the settings
 
 ## How it works
 
-How it works: `core/.../core` is plain Java with no Minecraft in it (region format, tile baking, the 2D painter, the 3D ray caster, waypoints, importers, server rules) and the tests cover it. `client` connects it to the game. All map images are drawn into pixel buffers on worker threads and the game thread only uploads a texture and draws it through the Proteus canvas, which is why the same code runs on every range and stays out of the way of Sodium and Iris.
+How it works: `core/.../core` is plain Java with no Minecraft in it (region format, tile baking, the 2D painter, the 3D ray caster, waypoints, importers, server rules) and the tests cover it. `client` connects it to the game. All map images are drawn into pixel buffers on worker threads and the game thread only uploads textures and draws them through the Proteus canvas, which is why the same code runs on every range and stays out of the way of Sodium and Iris.
+
+The minimap and the 3D view are one texture, redrawn when the view changes. The 2D fullscreen map is cut into pages of 512 x 512 pixels that line up with the regions, one set per zoom level. A page is painted once, uploaded, and then only moved and scaled by the graphics card, so panning and zooming cost nothing and the map is as sharp as the display. Pages are repainted when the regions under them change. The 3D view is still ray cast on the processor, at a resolution set by "Render resolution".
 
 Atlas needs Proteus 1.1.0 or newer, and Fabric API on Fabric. The build takes Proteus from Modrinth's Maven.
 
