@@ -35,7 +35,7 @@ Client-side minimap, world map and waypoints with a 2D and a 3D view of everythi
 [[dependencies.${mod_id}]]
     modId="proteus"
     mandatory=true
-    versionRange="[1.1.0,)"
+    versionRange="[1.2,)"
     ordering="NONE"
     side="BOTH"
 

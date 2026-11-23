@@ -59,7 +59,7 @@ repositories {
 }
 
 dependencies {
-    implementation "maven.modrinth:S9H9TVdr:${project.proteus_version}"
+    implementation "maven.modrinth:S9H9TVdr:${project.proteus_version}+${project.proteus_target}"
     implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
     annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.1'
 }

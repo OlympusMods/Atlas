@@ -61,7 +61,7 @@ How it works: `core/.../core` is plain Java with no Minecraft in it (region form
 
 The minimap and the 3D view are one texture, redrawn when the view changes. The 2D fullscreen map is cut into pages of 512 x 512 pixels that line up with the regions, one set per zoom level. A page is painted once, uploaded, and then only moved and scaled by the graphics card, so panning and zooming cost nothing and the map is as sharp as the display. Pages are repainted when the regions under them change. The 3D view is still ray cast on the processor, at a resolution set by "Render resolution".
 
-Atlas needs Proteus 1.1.0 or newer, and Fabric API on Fabric. The build takes Proteus from Modrinth's Maven.
+Atlas needs Proteus 1.2 or newer, and Fabric API on Fabric. The build takes Proteus from Modrinth's Maven.
 
 One source tree builds a jar for every Minecraft range and loader below. Shared code lives in `core`, and a Minecraft range only holds the files that changed from the range before it.
 

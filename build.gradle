@@ -132,6 +132,7 @@ gradle.ext.targets.each { target ->
             command << childTask
             command << "-Pmod_version=${modVersion}".toString()
             command << "-Pversion=${modVersion}".toString()
+            command << "-Pproteus_version=${findProperty('proteus_version')}".toString()
             if (!useDaemon) {
                 command << '--no-daemon'
             }

@@ -83,7 +83,7 @@ configurations {
 }
 
 dependencies {
-    implementation "maven.modrinth:S9H9TVdr:${project.proteus_version}"
+    implementation "maven.modrinth:S9H9TVdr:${project.proteus_version}+${project.proteus_target}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
